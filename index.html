@@ -39,15 +39,15 @@
 
     .trip-card { background: var(--card-bg); border: 2px solid var(--border-color); border-radius: var(--radius); padding: 18px; margin-bottom: 16px; box-shadow: var(--shadow); position: relative; transition: all 0.2s; }
     
-    /* 已取消卡片專屬樣式：刪除線與柔和粉紅背景 */
+    /* 已取消行程專屬樣式 */
     .trip-card.canceled { background-color: #FFF0F2; opacity: 0.85; border-color: #FF85A1; }
     .trip-card.canceled .city-name, 
     .trip-card.canceled .hotel-name, 
-    .trip-card.canceled strong { text-decoration: line-through; color: #A0A0A0 !important; }
+    .trip-card.canceled .flight-number,
+    .trip-card.canceled time { text-decoration: line-through; color: #A0A0A0 !important; }
 
     .cancel-badge { display: inline-block; background: #FF85A1; color: #FFF; font-size: 11px; font-weight: bold; padding: 2px 6px; border-radius: 6px; margin-left: 6px; vertical-align: middle; text-decoration: none !important; }
 
-    /* 調整頭部資訊右側留白，避免與頭像重疊 */
     .avatar-badge { position: absolute; top: 14px; right: 14px; border: 2px solid var(--border-color); border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; box-shadow: 2px 2px 0px var(--border-color); background: var(--pink-soft); z-index: 2; }
     .pixel-avatar { width: 32px; height: 32px; }
 
@@ -55,9 +55,17 @@
     .date-tag { display: inline-block; background: var(--lavender-soft); padding: 4px 10px; border-radius: 10px; font-size: 12px; font-weight: bold; border: 1px solid var(--border-color); }
     .weather-tag { font-size: 12px; font-weight: bold; color: #0984E3; background: #E8F4F8; padding: 4px 8px; border-radius: 10px; border: 1px solid #B2BEC3; }
 
-    .flight-route { display: flex; align-items: center; justify-content: space-between; margin: 10px 0; padding: 10px; background: #F8F9FA; border-radius: 14px; border: 1px dashed var(--border-color); }
+    /* 航班 UI 排版精修 */
+    .flight-header { font-size: 16px; font-weight: bold; color: #2D3436; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+    .flight-route { display: flex; align-items: center; justify-content: space-between; margin: 8px 0; padding: 12px; background: #F8F9FA; border-radius: 14px; border: 1px dashed var(--border-color); }
     .trip-card.canceled .flight-route { background: #FAEEF0; }
-    .city-name { font-size: 14px; font-weight: bold; color: #2D3436; }
+    
+    .flight-point { display: flex; flex-direction: column; gap: 4px; }
+    .flight-point.right { text-align: right; }
+    .city-name { font-size: 14px; font-weight: bold; color: #2D3436; display: flex; align-items: center; gap: 6px; }
+    .flight-point.right .city-name { justify-content: flex-end; }
+    .flight-time { font-size: 13px; font-weight: bold; color: #6C5CE7; }
+    .terminal-tag { font-size: 10px; background: #FFE0BD; padding: 1px 5px; border-radius: 6px; color: #D35400; border: 1px solid #F39C12; }
 
     .hotel-name-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; padding-right: 45px; }
     .hotel-name { font-size: 16px; font-weight: bold; color: #2D3436; flex: 1; }
@@ -176,7 +184,6 @@
     function parseDateToISO(rawDate) {
       if (!rawDate) return '';
       let cleaned = rawDate.replace(/\//g, '-').trim();
-      // 如果是 DD-MM-YYYY 格式
       const parts = cleaned.split('-');
       if (parts.length === 3) {
         if (parts[0].length === 4) {
@@ -230,12 +237,15 @@
         const rawDate = getVal(idxDate);
         const isoDate = parseDateToISO(rawDate);
 
+
         const memberRaw = getVal(idxMember).toLowerCase();
         let passenger = 'both';
-        if (memberRaw.includes('Girl') || memberRaw.includes('女') ) {
+        if (memberRaw.includes('girl')) {
           passenger = 'girl';
-        } else if (memberRaw.includes('Boy') || memberRaw.includes('男') ) {
+        } else if (memberRaw.includes('boy')) {
           passenger = 'boy';
+        } else if (memberRaw.includes('both')) {
+          passenger = 'both';
         }
 
         const rowString = row.join(' ').toLowerCase();
@@ -245,7 +255,7 @@
           id: i,
           type: type,
           date: isoDate,
-          rawDate: rawDate, // 畫面顯示原始日期 (如 23/10/2026)
+          rawDate: rawDate,
           passenger: passenger,
           fromCode: getVal(idxFrom).toUpperCase(),
           toCode: getVal(idxTo).toUpperCase(),
@@ -299,9 +309,9 @@
         return currentTab === 'future' ? item.date >= todayStr : item.date < todayStr;
       }).sort((a, b) => {
         if (currentTab === 'future') {
-          return a.date.localeCompare(b.date);  // 未來：由近至遠 (升序)
+          return a.date.localeCompare(b.date);
         } else {
-          return b.date.localeCompare(a.date);  // 過去：最近過去的排在最上面 (降序)
+          return b.date.localeCompare(a.date);
         }
       });
 
@@ -319,7 +329,6 @@
         const toAirport = airportDB[item.toCode] || { name: item.toCode, weather: '☁️ 15°C' };
         const fromAirport = airportDB[item.fromCode] || { name: item.fromCode };
 
-        // 畫面顯示 Google Form 原始日期 (保持你習慣的格式)
         cardHtml += `
           <div class="header-info">
             <span class="date-tag">${item.rawDate || item.date}</span>
@@ -328,24 +337,25 @@
         `;
 
         if (item.type === 'flight') {
-          const timeText = (item.depTime || item.arrTime) ? `⏰ ${item.depTime || '--:--'} ➔ ${item.arrTime || '--:--'}` : '';
           const cancelBadge = item.isCanceled ? `<span class="cancel-badge">已取消</span>` : '';
-          
-          const fromTermText = item.depTerminal ? ` <span style="font-size:11px; background:#FFE0BD; padding:2px 5px; border-radius:6px; color:#D35400;">${item.depTerminal}</span>` : '';
-          const toTermText = item.arrTerminal ? ` <span style="font-size:11px; background:#FFE0BD; padding:2px 5px; border-radius:6px; color:#D35400;">${item.arrTerminal}</span>` : '';
+          const fromTermText = item.depTerminal ? ` <span class="terminal-tag">${item.depTerminal}</span>` : '';
+          const toTermText = item.arrTerminal ? ` <span class="terminal-tag">${item.arrTerminal}</span>` : '';
 
           cardHtml += `
-            <div class="flight-info-text" style="margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
-              <div>
-                <strong>${item.flightNo || '航班'}</strong>
-                ${cancelBadge}
-              </div>
-              <span style="font-size:12px; color:#636E72; font-weight:bold;">${timeText}</span>
+            <div class="flight-header">
+              <span class="flight-number">${item.flightNo || '航班'}</span>
+              ${cancelBadge}
             </div>
             <div class="flight-route">
-              <div class="city-name">${fromAirport.name}${fromTermText}</div>
-              <div style="font-size:12px; font-weight:bold; color:#6C5CE7;">✈</div>
-              <div class="city-name" style="text-align:right;">${toAirport.name}${toTermText}</div>
+              <div class="flight-point">
+                <div class="city-name">${fromAirport.name}${fromTermText}</div>
+                <div class="flight-time">${item.depTime || '--:--'}</div>
+              </div>
+              <div style="font-size:16px; font-weight:bold; color:#6C5CE7;">✈</div>
+              <div class="flight-point right">
+                <div class="city-name">${toAirport.name}${toTermText}</div>
+                <div class="flight-time">${item.arrTime || '--:--'}</div>
+              </div>
             </div>
           `;
         } else if (item.type === 'hotel') {
