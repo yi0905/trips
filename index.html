@@ -39,6 +39,7 @@
 
     .trip-card { background: var(--card-bg); border: 2px solid var(--border-color); border-radius: var(--radius); padding: 18px; margin-bottom: 16px; box-shadow: var(--shadow); position: relative; transition: all 0.2s; }
     
+    /* 已取消卡片專屬樣式：刪除線與柔和粉紅背景 */
     .trip-card.canceled { background-color: #FFF0F2; opacity: 0.85; border-color: #FF85A1; }
     .trip-card.canceled .city-name, 
     .trip-card.canceled .hotel-name, 
@@ -46,10 +47,11 @@
 
     .cancel-badge { display: inline-block; background: #FF85A1; color: #FFF; font-size: 11px; font-weight: bold; padding: 2px 6px; border-radius: 6px; margin-left: 6px; vertical-align: middle; text-decoration: none !important; }
 
-    .avatar-badge { position: absolute; top: 14px; right: 14px; border: 2px solid var(--border-color); border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; box-shadow: 2px 2px 0px var(--border-color); background: var(--pink-soft); }
+    /* 調整頭部資訊右側留白，避免與頭像重疊 */
+    .avatar-badge { position: absolute; top: 14px; right: 14px; border: 2px solid var(--border-color); border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; box-shadow: 2px 2px 0px var(--border-color); background: var(--pink-soft); z-index: 2; }
     .pixel-avatar { width: 32px; height: 32px; }
 
-    .header-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-right: 48px; }
+    .header-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-right: 55px; }
     .date-tag { display: inline-block; background: var(--lavender-soft); padding: 4px 10px; border-radius: 10px; font-size: 12px; font-weight: bold; border: 1px solid var(--border-color); }
     .weather-tag { font-size: 12px; font-weight: bold; color: #0984E3; background: #E8F4F8; padding: 4px 8px; border-radius: 10px; border: 1px solid #B2BEC3; }
 
@@ -57,10 +59,9 @@
     .trip-card.canceled .flight-route { background: #FAEEF0; }
     .city-name { font-size: 14px; font-weight: bold; color: #2D3436; }
 
-    .hotel-name-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
-    .hotel-name { font-size: 16px; font-weight: bold; color: #2D3436; flex: 1; padding-right: 10px; }
+    .hotel-name-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; padding-right: 45px; }
+    .hotel-name { font-size: 16px; font-weight: bold; color: #2D3436; flex: 1; }
     
-    /* 確保 Pixel 地圖按鈕有足夠大小與邊框，點擊時有凹陷動畫 */
     .pixel-map-btn { 
       display: inline-flex; 
       align-items: center; 
@@ -132,6 +133,7 @@
   </div>
 
   <div id="trip-list" style="text-align:center; padding: 30px; color:#9A8C98; font-weight:bold;">載入雲端行程中...</div>
+
   <script>
     const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSYGijVIwS2p98zxzCSqG7fboUQGT57T25puI-LYendvF-vvgh4uhPALFyx5xvv5zhdRiQYQrVYq_sy/pub?output=csv';
 
@@ -171,86 +173,115 @@
       }
     }
 
-    function formatDateString(rawDate) {
+    function parseDateToISO(rawDate) {
       if (!rawDate) return '';
       let cleaned = rawDate.replace(/\//g, '-').trim();
+      // 如果是 DD-MM-YYYY 格式
+      const parts = cleaned.split('-');
+      if (parts.length === 3) {
+        if (parts[0].length === 4) {
+          return `${parts[0]}-${parts[1].padStart(2,'0')}-${parts[2].padStart(2,'0')}`;
+        } else {
+          return `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
+        }
+      }
       return cleaned.substring(0, 10);
     }
 
     function parseGoogleFormCSV(text) {
       const lines = text.split('\n').filter(l => l.trim() !== '');
+      if (lines.length === 0) return [];
+
+      const headers = parseCSVLine(lines[0]).map(h => h.trim().toLowerCase());
+      
+      function findIndex(keywords) {
+        for (let kw of keywords) {
+          const idx = headers.findIndex(h => h.includes(kw));
+          if (idx !== -1) return idx;
+        }
+        return -1;
+      }
+
+      const idxType = findIndex(['類型', 'type', '行程類型']);
+      const idxDate = findIndex(['日期', 'date']);
+      const idxMember = findIndex(['成員', 'passenger', '旅程成員']);
+      const idxFrom = findIndex(['出發', 'from']);
+      const idxTo = findIndex(['抵達', 'to']);
+      const idxFlightNo = findIndex(['航班編號', 'flight', '航班']);
+      const idxDepTime = findIndex(['起飛時間', 'dep time', '起飛']);
+      const idxArrTime = findIndex(['抵達時間', 'arr time', '降落']);
+      const idxDepTerm = findIndex(['出發航廈', 'dep terminal']);
+      const idxArrTerm = findIndex(['抵達航廈', 'arr terminal']);
+      const idxHotelName = findIndex(['飯店', 'hotel', '酒店', '飯店名稱']);
+      const idxAddress = findIndex(['地址', 'address']);
+      const idxPhone = findIndex(['電話', 'phone']);
+      const idxFacilities = findIndex(['設施', 'facilities', '配備']);
+
       const result = [];
       for (let i = 1; i < lines.length; i++) {
-        const row = [];
-        let inQuotes = false;
-        let currentItem = '';
-        for (let char of lines[i]) {
-          if (char === '"') {
-            inQuotes = !inQuotes;
-          } else if (char === ',' && !inQuotes) {
-            row.push(currentItem.trim().replace(/^"|"$/g, ''));
-            currentItem = '';
-          } else {
-            currentItem += char;
-          }
-        }
-        row.push(currentItem.trim().replace(/^"|"$/g, ''));
+        const row = parseCSVLine(lines[i]);
+        if (row.length < 3) continue;
 
-        if(row.length < 3) continue;
-        
-        const typeRaw = (row[1] || '').toLowerCase();
+        const getVal = (idx) => (idx !== -1 && row[idx] !== undefined) ? row[idx].trim() : '';
+
+        const typeRaw = getVal(idxType).toLowerCase();
         const type = (typeRaw.includes('flight') || typeRaw.includes('航班')) ? 'flight' : 'hotel';
-        
-        const passengerRaw = (row[3] || '').toLowerCase();
+
+        const rawDate = getVal(idxDate);
+        const isoDate = parseDateToISO(rawDate);
+
+        const memberRaw = getVal(idxMember).toLowerCase();
         let passenger = 'both';
-        if (passengerRaw.includes('男') || passengerRaw.includes('boy')) {
-          passenger = 'boy';
-        } else if (passengerRaw.includes('女') || passengerRaw.includes('girl') {
+        if (memberRaw.includes('Girl') || memberRaw.includes('女') ) {
           passenger = 'girl';
+        } else if (memberRaw.includes('Boy') || memberRaw.includes('男') ) {
+          passenger = 'boy';
         }
 
-        const rowString = row.join(' ');
-        const isCanceled = rowString.includes('已取消') || rowString.includes('canceled');
-
-        let fromCode = '', toCode = '', flightNo = '', depTime = '', arrTime = '', depTerminal = '', arrTerminal = '', name = '', addr = '', phone = '', facilities = '';
-
-        if (type === 'flight') {
-          fromCode = (row[4] || '').toUpperCase();
-          toCode = (row[5] || '').toUpperCase();
-          flightNo = row[6] || '';
-          depTime = row[7] || '';
-          arrTime = row[8] || '';
-          depTerminal = row[9] || '';
-          arrTerminal = row[10] || '';
-        } else {
-          name = row[7] || '';
-          addr = row[8] || '';
-          phone = row[9] || '';
-          facilities = row[10] || '';
-        }
+        const rowString = row.join(' ').toLowerCase();
+        const isCanceled = rowString.includes('已取消') || rowString.includes('canceled') || rowString.includes('取消');
 
         result.push({
           id: i,
           type: type,
-          date: formatDateString(row[2]),
+          date: isoDate,
+          rawDate: rawDate, // 畫面顯示原始日期 (如 23/10/2026)
           passenger: passenger,
-          fromCode: fromCode,
-          toCode: toCode,
-          flightNo: flightNo,
-          depTime: depTime,
-          arrTime: arrTime,
-          depTerminal: depTerminal,
-          arrTerminal: arrTerminal,
+          fromCode: getVal(idxFrom).toUpperCase(),
+          toCode: getVal(idxTo).toUpperCase(),
+          flightNo: getVal(idxFlightNo),
+          depTime: getVal(idxDepTime),
+          arrTime: getVal(idxArrTime),
+          depTerminal: getVal(idxDepTerm),
+          arrTerminal: getVal(idxArrTerm),
           isCanceled: isCanceled,
-          name: name,
-          address: addr,
-          phone: phone,
-          breakfast: facilities.includes('早餐'),
-          bathtub: facilities.includes('浴缸'),
-          parking: facilities.includes('停車場')
+          name: getVal(idxHotelName),
+          address: getVal(idxAddress),
+          phone: getVal(idxPhone),
+          breakfast: getVal(idxFacilities).includes('早餐'),
+          bathtub: getVal(idxFacilities).includes('浴缸'),
+          parking: getVal(idxFacilities).includes('停車場')
         });
       }
       return result;
+    }
+
+    function parseCSVLine(line) {
+      const row = [];
+      let inQuotes = false;
+      let currentItem = '';
+      for (let char of line) {
+        if (char === '"') {
+          inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+          row.push(currentItem.trim().replace(/^"|"$/g, ''));
+          currentItem = '';
+        } else {
+          currentItem += char;
+        }
+      }
+      row.push(currentItem.trim().replace(/^"|"$/g, ''));
+      return row;
     }
 
     function renderTrips() {
@@ -288,9 +319,10 @@
         const toAirport = airportDB[item.toCode] || { name: item.toCode, weather: '☁️ 15°C' };
         const fromAirport = airportDB[item.fromCode] || { name: item.fromCode };
 
+        // 畫面顯示 Google Form 原始日期 (保持你習慣的格式)
         cardHtml += `
           <div class="header-info">
-            <span class="date-tag">${item.date}</span>
+            <span class="date-tag">${item.rawDate || item.date}</span>
             <span class="weather-tag">${toAirport.weather}</span>
           </div>
         `;
@@ -327,7 +359,9 @@
           cardHtml += `
             <div class="hotel-name-row">
               <div class="hotel-name">${item.name}</div>
-              <a href="${mapUrl}" target="_blank" class="pixel-map-btn" title="在 Google 地圖開啟">${pixelIcons.pixelMap}</a>
+              <a href="${mapUrl}" target="_blank" class="pixel-map-btn" title="在 Google 地圖開啟">
+                ${pixelIcons.pixelMap} 地圖
+              </a>
             </div>
             <div class="hotel-detail">📍 ${item.address}</div>
             <div class="hotel-detail">📞 ${item.phone}</div>
@@ -365,3 +399,5 @@
 
     loadTripsFromCloud();
   </script>
+</body>
+</html>
