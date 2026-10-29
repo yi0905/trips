@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>行程總覽</title>
+  <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Zen+Maru+Gothic:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-color: #FDF7F4;
+      --card-bg: #FFFFFF;
+      --pink-primary: #FFB7B2;
+      --pink-soft: #FFDAC1;
+      --blue-soft: #B5EAD7;
+      --lavender-soft: #E0C3FC;
+      --text-color: #4A4E69;
+      --border-color: #9A8C98;
+      --cancel-color: #FF85A1;
+      --shadow: 4px 4px 0px rgba(154, 140, 152, 0.3);
+      --radius: 20px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Zen Maru Gothic', 'DotGothic16', sans-serif; }
+    body { background-color: var(--bg-color); color: var(--text-color); padding: 16px; max-width: 600px; margin: 0 auto; padding-bottom: 90px; }
+
+    header { text-align: center; margin-bottom: 20px; }
+    h1 { font-family: 'DotGothic16', sans-serif; font-size: 26px; color: #6C5CE7; text-shadow: 2px 2px 0px #FFB7B2; margin-bottom: 12px; }
+
+    .tab-switch { display: flex; justify-content: center; gap: 12px; background: #FFF; padding: 6px; border-radius: 30px; box-shadow: var(--shadow); border: 2px solid var(--border-color); }
+    .tab-btn { flex: 1; padding: 8px 16px; border: none; background: transparent; border-radius: 20px; font-size: 15px; font-weight: bold; color: var(--text-color); cursor: pointer; transition: all 0.2s; }
+    .tab-btn.active { background-color: var(--pink-primary); color: #FFF; box-shadow: 2px 2px 0px #9A8C98; }
+
+    .tools-container { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+    .tool-card { background: var(--card-bg); border: 2px solid var(--border-color); border-radius: var(--radius); padding: 14px; box-shadow: var(--shadow); }
+    .tool-title { font-size: 14px; font-weight: bold; color: #6C5CE7; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+    .tool-input, .tool-select { width: 100%; padding: 8px; border: 2px solid var(--pink-soft); border-radius: 12px; font-size: 13px; margin-bottom: 8px; outline: none; background: #FFF; }
+    .tool-btn { width: 100%; padding: 8px; background: var(--blue-soft); border: 2px solid var(--border-color); border-radius: 12px; font-weight: bold; color: var(--text-color); cursor: pointer; box-shadow: 2px 2px 0px var(--border-color); }
+    .rate-result { font-size: 13px; font-weight: bold; color: #D63031; text-align: center; margin-top: 6px; }
+
+    .trip-card { background: var(--card-bg); border: 2px solid var(--border-color); border-radius: var(--radius); padding: 18px; margin-bottom: 16px; box-shadow: var(--shadow); position: relative; }
+    .avatar-badge { position: absolute; top: 14px; right: 14px; border: 2px solid var(--border-color); border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; box-shadow: 2px 2px 0px var(--border-color); background: var(--pink-soft); }
+
+    .pixel-avatar { width: 32px; height: 32px; }
+
+    .header-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-right: 48px; }
+    .date-tag { display: inline-block; background: var(--lavender-soft); padding: 4px 10px; border-radius: 10px; font-size: 12px; font-weight: bold; border: 1px solid var(--border-color); }
+    .weather-tag { font-size: 12px; font-weight: bold; color: #0984E3; background: #E8F4F8; padding: 4px 8px; border-radius: 10px; border: 1px solid #B2BEC3; }
+
+    .flight-route { display: flex; align-items: center; justify-content: space-between; margin: 10px 0; padding: 10px; background: #F8F9FA; border-radius: 14px; border: 1px dashed var(--border-color); }
+    .city-name { font-size: 14px; font-weight: bold; color: #2D3436; }
+
+    .canceled { opacity: 0.65; }
+    .canceled .flight-route, .canceled .flight-info-text { text-decoration: line-through; color: var(--cancel-color); }
+    .cancel-badge { display: inline-block; background: #FF85A1; color: #FFF; font-size: 11px; padding: 2px 8px; border-radius: 8px; margin-left: 8px; text-decoration: none !important; }
+
+    .hotel-name { font-size: 16px; font-weight: bold; color: #2D3436; margin-bottom: 6px; }
+    .hotel-detail { font-size: 13px; color: #636E72; margin-bottom: 4px; }
+    .hotel-divider { border: none; border-top: 2px dashed var(--pink-soft); margin: 12px 0; }
+    .tag-container { display: flex; gap: 6px; flex-wrap: wrap; }
+    .hotel-tag { font-size: 11px; background: #E2F0CB; color: #386641; padding: 3px 8px; border-radius: 8px; font-weight: bold; border: 1px solid #B5E48C; }
+    .map-link { display: inline-block; margin-top: 8px; color: #0984E3; font-size: 12px; text-decoration: none; font-weight: bold; }
+
+    .fab { position: fixed; bottom: 24px; right: 24px; width: 56px; height: 56px; background: var(--pink-primary); border: 3px solid var(--border-color); border-radius: 50%; font-size: 28px; color: #FFF; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 4px 4px 0px var(--border-color); z-index: 99; }
+
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.4); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
+    .modal { background: #FFF; border: 3px solid var(--border-color); border-radius: 24px; padding: 20px; width: 100%; max-width: 450px; box-shadow: 6px 6px 0px var(--border-color); max-height: 90vh; overflow-y: auto; }
+    .modal-tabs { display: flex; gap: 10px; margin-bottom: 16px; }
+    .modal-tab { flex: 1; padding: 8px; border: 2px solid var(--border-color); border-radius: 12px; background: #FFF; cursor: pointer; font-weight: bold; }
+    .modal-tab.active { background: var(--pink-soft); }
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 4px; }
+    .form-group input, .form-group select { width: 100%; padding: 8px; border: 2px solid var(--border-color); border-radius: 10px; font-size: 13px; }
+    .checkbox-group { display: flex; gap: 12px; margin-top: 6px; font-size: 13px; font-weight: bold; }
+    .modal-btns { display: flex; gap: 10px; margin-top: 16px; }
+    .btn-submit { flex: 1; padding: 10px; background: var(--blue-soft); border: 2px solid var(--border-color); border-radius: 12px; font-weight: bold; cursor: pointer; }
+    .btn-close { flex: 1; padding: 10px; background: #FFEAA7; border: 2px solid var(--border-color); border-radius: 12px; font-weight: bold; cursor: pointer; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>行程總覽</h1>
+    <div class="tab-switch">
+      <button class="tab-btn active" onclick="switchTripTab('future')">未來行程</button>
+      <button class="tab-btn" onclick="switchTripTab('past')">過去行程</button>
+    </div>
+  </header>
+
+  <div class="tools-container">
+    <div class="tool-card">
+      <div class="tool-title">即時換匯器</div>
+      <div style="display:flex; gap:6px; margin-bottom:6px;">
+        <input type="number" id="calc-amount" class="tool-input" value="1000" oninput="calculateExchange()" style="margin-bottom:0;">
+        <select id="calc-from" class="tool-select" onchange="calculateExchange()" style="width:85px; margin-bottom:0;">
+          <option value="HKD">HKD</option>
+          <option value="JPY">JPY</option>
+          <option value="TWD">TWD</option>
+          <option value="KRW">KRW</option>
+        </select>
+      </div>
+      <div style="font-size:11px; font-weight:bold; color:#9A8C98; text-align:center; margin:2px 0;">兌換為</div>
+      <select id="calc-target" class="tool-select" onchange="calculateExchange()" style="margin-bottom:4px;">
+        <option value="JPY">JPY</option>
+        <option value="HKD">HKD</option>
+        <option value="TWD">TWD</option>
+        <option value="KRW">KRW</option>
+      </select>
+      <div id="rate-result" class="rate-result">約 19,230 JPY</div>
+    </div>
+
+    <div class="tool-card">
+      <div class="tool-title">即時翻譯</div>
+      <input type="text" id="trans-text" class="tool-input" placeholder="輸入文字...">
+      <select id="trans-lang" class="tool-select">
+        <option value="ja">日文</option>
+        <option value="en">英文</option>
+        <option value="ko">韓文</option>
+      </select>
+      <button class="tool-btn" onclick="openTranslate()">Google 翻譯</button>
+    </div>
+  </div>
+
+  <div id="trip-list"></div>
+
+  <div class="fab" onclick="openModal()">+</div>
+
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal">
+      <div class="modal-tabs">
+        <button class="modal-tab active" id="modal-tab-flight" onclick="switchModalType('flight')">新增航班</button>
+        <button class="modal-tab" id="modal-tab-hotel" onclick="switchModalType('hotel')">新增飯店</button>
+      </div>
+
+      <form id="trip-form" onsubmit="saveTripItem(event)">
+        <div class="form-group">
+          <label>日期</label>
+          <input type="date" id="form-date" required>
+        </div>
+
+        <div class="form-group">
+          <label>旅程成員</label>
+          <select id="form-passenger">
+            <option value="boy">男生</option>
+            <option value="girl">女生</option>
+            <option value="both">男生與女生</option>
+          </select>
+        </div>
+
+        <div id="flight-fields">
+          <div class="form-group">
+            <label>出發城市與代碼</label>
+            <input type="text" id="form-from-city" placeholder="香港 (HKG)">
+          </div>
+          <div class="form-group">
+            <label>抵達城市與代碼</label>
+            <input type="text" id="form-to-city" placeholder="函館 (HKD)">
+          </div>
+          <div class="form-group">
+            <label>航班編號</label>
+            <input type="text" id="form-flight-no" placeholder="JX721">
+          </div>
+          <div class="form-group">
+            <label>預計天氣</label>
+            <input type="text" id="form-weather" placeholder="❄️ -2°C / 3°C">
+          </div>
+          <div class="form-group">
+            <label style="color: var(--cancel-color);">
+              <input type="checkbox" id="form-canceled"> 此航班已取消
+            </label>
+          </div>
+        </div>
+
+        <div id="hotel-fields" style="display:none;">
+          <div class="form-group">
+            <label>飯店名稱</label>
+            <input type="text" id="form-hotel-name" placeholder="函館普樂美飯店">
+          </div>
+          <div class="form-group">
+            <label>地址</label>
+            <input type="text" id="form-hotel-addr" placeholder="函館市大手町22-13">
+          </div>
+          <div class="form-group">
+            <label>電話</label>
+            <input type="text" id="form-hotel-phone" placeholder="+81 138-23-8888">
+          </div>
+          <div class="form-group">
+            <label>飯店設施</label>
+            <div class="checkbox-group">
+              <label><input type="checkbox" id="form-breakfast"> 含早餐</label>
+              <label><input type="checkbox" id="form-bathtub"> 浴缸</label>
+              <label><input type="checkbox" id="form-parking"> 有停車場</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-btns">
+          <button type="submit" class="btn-submit">新增儲存</button>
+          <button type="button" class="btn-close" onclick="closeModal()">取消</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <script>
+    const pixelIcons = {
+      boy: `<svg class="pixel-avatar" viewBox="0 0 10 10"><rect x="2" y="1" width="6" height="2" fill="#2A6F97"/><rect x="2" y="3" width="6" height="5" fill="#FFE0BD"/><rect x="3" y="4" width="1" height="1" fill="#2B2D42"/><rect x="6" y="4" width="1" height="1" fill="#2B2D42"/><rect x="4" y="6" width="2" height="1" fill="#FF8A80"/></svg>`,
+      girl: `<svg class="pixel-avatar" viewBox="0 0 10 10"><rect x="0" y="3" width="2" height="3" fill="#FF8FAB"/><rect x="8" y="3" width="2" height="3" fill="#FF8FAB"/><rect x="2" y="1" width="6" height="2" fill="#FF8FAB"/><rect x="2" y="3" width="6" height="5" fill="#FFE0BD"/><rect x="3" y="4" width="1" height="1" fill="#2B2D42"/><rect x="6" y="4" width="1" height="1" fill="#2B2D42"/><rect x="4" y="6" width="2" height="1" fill="#FF8A80"/></svg>`,
+      both: `<svg class="pixel-avatar" viewBox="0 0 16 10"><g transform="translate(0,0)"><rect x="1" y="1" width="5" height="2" fill="#2A6F97"/><rect x="1" y="3" width="5" height="5" fill="#FFE0BD"/><rect x="2" y="4" width="1" height="1" fill="#2B2D42"/><rect x="4" y="4" width="1" height="1" fill="#2B2D42"/></g><g transform="translate(7,0)"><rect x="0" y="3" width="2" height="3" fill="#FF8FAB"/><rect x="6" y="3" width="2" height="3" fill="#FF8FAB"/><rect x="1" y="1" width="6" height="2" fill="#FF8FAB"/><rect x="1" y="3" width="6" height="5" fill="#FFE0BD"/><rect x="2" y="4" width="1" height="1" fill="#2B2D42"/><rect x="5" y="4" width="1" height="1" fill="#2B2D42"/></g></g></svg>`
+    };
+
+    let trips = [];
+
+    let currentTab = 'future';
+    let currentModalType = 'flight';
+
+    function renderTrips() {
+      const listEl = document.getElementById('trip-list');
+      listEl.innerHTML = '';
+      const todayStr = new Date().toISOString().split('T')[0];
+
+      const filteredTrips = trips.filter(item => currentTab === 'future' ? item.date >= todayStr : item.date < todayStr).sort((a, b) => new Date(a.date) - new Date(b.date));
+
+      if (filteredTrips.length === 0) {
+        listEl.innerHTML = `<div style="text-align:center; padding: 40px; color: #9A8C98; font-weight:bold;">目前沒有行程，請點擊右下角「+」新增</div>`;
+        return;
+      }
+
+      filteredTrips.forEach(item => {
+        const card = document.createElement('div');
+        card.className = `trip-card ${item.canceled ? 'canceled' : ''}`;
+
+        let cardHtml = `<div class="avatar-badge">${pixelIcons[item.passenger] || pixelIcons.both}</div>`;
+        
+        cardHtml += `
+          <div class="header-info">
+            <span class="date-tag">${item.date}</span>
+            ${item.weather ? `<span class="weather-tag">${item.weather}</span>` : ''}
+          </div>
+        `;
+
+        if (item.type === 'flight') {
+          cardHtml += `
+            <div class="flight-info-text" style="margin-bottom:8px;">
+              <strong>${item.flightNo || '航班'}</strong>
+              ${item.canceled ? '<span class="cancel-badge">已取消</span>' : ''}
+            </div>
+            <div class="flight-route">
+              <div class="city-name">${item.fromCity}</div>
+              <div style="font-size:12px; font-weight:bold; color:#6C5CE7;">✈</div>
+              <div class="city-name" style="text-align:right;">${item.toCity}</div>
+            </div>
+          `;
+        } else if (item.type === 'hotel') {
+          const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.name + ' ' + item.address)}`;
+          
+          let tagsHtml = '';
+          if (item.breakfast) tagsHtml += `<span class="hotel-tag">🥐 含早餐</span>`;
+          if (item.bathtub) tagsHtml += `<span class="hotel-tag">🛁 浴缸</span>`;
+          if (item.parking) tagsHtml += `<span class="hotel-tag">🅿️ 有停車場</span>`;
+
+          cardHtml += `
+            <div class="hotel-name">${item.name}</div>
+            <div class="hotel-detail">📍 ${item.address}</div>
+            <div class="hotel-detail">📞 ${item.phone}</div>
+            <a href="${mapUrl}" target="_blank" class="map-link">在 Google 地圖開啟</a>
+            ${tagsHtml ? `<hr class="hotel-divider"><div class="tag-container">${tagsHtml}</div>` : ''}
+          `;
+        }
+
+        card.innerHTML = cardHtml;
+        listEl.appendChild(card);
+      });
+    }
+
+    function switchTripTab(tab) {
+      currentTab = tab;
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+      renderTrips();
+    }
+
+    const baseRatesToHKD = { HKD: 1.0, JPY: 0.052, TWD: 0.243, KRW: 0.0058 };
+
+    function calculateExchange() {
+      const amount = parseFloat(document.getElementById('calc-amount').value) || 0;
+      const fromCurr = document.getElementById('calc-from').value;
+      const targetCurr = document.getElementById('calc-target').value;
+
+      const valueInHKD = amount * baseRatesToHKD[fromCurr];
+      const result = valueInHKD / baseRatesToHKD[targetCurr];
+
+      document.getElementById('rate-result').innerText = `約 ${result.toLocaleString(undefined, { maximumFractionDigits: 0 })} ${targetCurr}`;
+    }
+
+    function openTranslate() {
+      const text = document.getElementById('trans-text').value;
+      const lang = document.getElementById('trans-lang').value;
+      window.open(`https://translate.google.com/?sl=auto&tl=${lang}&text=${encodeURIComponent(text)}&op=translate`, '_blank');
+    }
+
+    function openModal() { document.getElementById('modal-overlay').style.display = 'flex'; document.getElementById('form-date').value = new Date().toISOString().split('T')[0]; }
+    function closeModal() { document.getElementById('modal-overlay').style.display = 'none'; }
+    function switchModalType(type) {
+      currentModalType = type;
+      document.getElementById('modal-tab-flight').classList.toggle('active', type === 'flight');
+      document.getElementById('modal-tab-hotel').classList.toggle('active', type === 'hotel');
+      document.getElementById('flight-fields').style.display = type === 'flight' ? 'block' : 'none';
+      document.getElementById('hotel-fields').style.display = type === 'hotel' ? 'block' : 'none';
+    }
+
+    function saveTripItem(e) {
+      e.preventDefault();
+      const date = document.getElementById('form-date').value;
+      const passenger = document.getElementById('form-passenger').value;
+
+      if (currentModalType === 'flight') {
+        trips.push({
+          id: Date.now(), type: 'flight', date: date, passenger: passenger,
+          fromCity: document.getElementById('form-from-city').value || '香港 (HKG)',
+          toCity: document.getElementById('form-to-city').value || '台北 (TPE)',
+          flightNo: document.getElementById('form-flight-no').value || 'FLIGHT',
+          weather: document.getElementById('form-weather').value || '☀️ 20°C',
+          canceled: document.getElementById('form-canceled').checked
+        });
+      } else {
+        trips.push({
+          id: Date.now(), type: 'hotel', date: date, passenger: passenger,
+          name: document.getElementById('form-hotel-name').value || '飯店名稱',
+          address: document.getElementById('form-hotel-addr').value || '地址',
+          phone: document.getElementById('form-hotel-phone').value || '電話',
+          breakfast: document.getElementById('form-breakfast').checked,
+          bathtub: document.getElementById('form-bathtub').checked,
+          parking: document.getElementById('form-parking').checked
+        });
+      }
+      closeModal();
+      renderTrips();
+    }
+
+    renderTrips();
+  </script>
+</body>
+</html>
