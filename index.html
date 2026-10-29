@@ -198,29 +198,52 @@
       const lines = text.split('\n').filter(l => l.trim() !== '');
       if (lines.length < 2) return [];
 
+      const headers = parseCSVLine(lines[0]).map(h => h.trim().toLowerCase());
+      
+      function findIndex(keywords) {
+        for (let kw of keywords) {
+          const idx = headers.findIndex(h => h.includes(kw));
+          if (idx !== -1) return idx;
+        }
+        return -1;
+      }
+
+      const idxType = findIndex(['類型', 'type']);
+      const idxDate = findIndex(['日期', 'date']);
+      const idxMember = findIndex(['成員', 'passenger']);
+      const idxFrom = findIndex(['出發機場', '出發', 'from']);
+      const idxDepTime = findIndex(['起飛時間', '出發時間', 'dep']);
+      const idxDepTerm = findIndex(['出發航廈', 'dep term']);
+      const idxTo = findIndex(['抵達機場', '抵達', 'to']);
+      const idxArrTime = findIndex(['抵達時間', '降落時間', 'arr']);
+      const idxArrTerm = findIndex(['抵達航廈', 'arr term']);
+      const idxFlightNo = findIndex(['航班編號', 'flight', '航班']);
+      const idxHotelName = findIndex(['飯店名稱', 'hotel', '酒店']);
+      const idxAddress = findIndex(['地址', 'address']);
+      const idxPhone = findIndex(['電話', 'phone']);
+      const idxFacilities = findIndex(['設施', 'facilities', '配備']);
+
       const result = [];
       for (let i = 1; i < lines.length; i++) {
         const row = parseCSVLine(lines[i]);
         if (row.length < 3) continue;
 
-        // 嚴格依照你提供的真實欄位順序對應索引：
-        // [0] Timestamp, [1] 行程類型, [2] 日期, [3] 旅程成員, 
-        // [4] 出發機場代碼, [5] 出發時間, [6] 出發航廈, 
-        // [7] 抵達機場代碼, [8] 抵達時間, [9] 抵達航廈, 
-        // [10] 航班編號, [11] 航班狀態, [12] 飯店名稱, [13] 飯店地址, [14] 飯店電話, [15] 飯店設施[cite: 3]
-        const typeRaw = (row[1] || '').toLowerCase();
+        const getVal = (idx) => (idx !== -1 && row[idx] !== undefined) ? row[idx].trim() : '';
+
+        const typeRaw = getVal(idxType).toLowerCase();
         const type = (typeRaw.includes('flight') || typeRaw.includes('航班')) ? 'flight' : 'hotel';
 
-        const rawDate = row[2] || '';
+        const rawDate = getVal(idxDate);
         const isoDate = parseDateToISO(rawDate);
 
-        const memberRaw = (row[3] || '').trim().toLowerCase();
+        // 強制嚴格對應 Both、Girl、Boy
+        const memberRaw = getVal(idxMember).toLowerCase();
         let passenger = 'both';
-        if (memberRaw === 'girl') {
+        if (memberRaw === 'girl' || memberRaw.includes('girl')) {
           passenger = 'girl';
-        } else if (memberRaw === 'boy') {
+        } else if (memberRaw === 'boy' || memberRaw.includes('boy')) {
           passenger = 'boy';
-        } else if (memberRaw === 'both') {
+        } else if (memberRaw === 'both' || memberRaw.includes('both')) {
           passenger = 'both';
         }
 
@@ -233,20 +256,20 @@
           date: isoDate,
           rawDate: rawDate,
           passenger: passenger,
-          fromCode: (row[4] || '').toUpperCase(),
-          depTime: row[5] || '',
-          depTerminal: row[6] || '',
-          toCode: (row[7] || '').toUpperCase(),
-          arrTime: row[8] || '',
-          arrTerminal: row[9] || '',
-          flightNo: row[10] || '',
+          fromCode: getVal(idxFrom).toUpperCase(),
+          depTime: getVal(idxDepTime),
+          depTerminal: getVal(idxDepTerm),
+          toCode: getVal(idxTo).toUpperCase(),
+          arrTime: getVal(idxArrTime),
+          arrTerminal: getVal(idxArrTerm),
+          flightNo: getVal(idxFlightNo),
           isCanceled: isCanceled,
-          name: row[12] || '',
-          address: row[13] || '',
-          phone: row[14] || '',
-          breakfast: (row[15] || '').includes('早餐'),
-          bathtub: (row[15] || '').includes('浴缸'),
-          parking: (row[15] || '').includes('停車場')
+          name: getVal(idxHotelName),
+          address: getVal(idxAddress),
+          phone: getVal(idxPhone),
+          breakfast: getVal(idxFacilities).includes('早餐'),
+          bathtub: getVal(idxFacilities).includes('浴缸'),
+          parking: getVal(idxFacilities).includes('停車場')
         });
       }
       return result;
