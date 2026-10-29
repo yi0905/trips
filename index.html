@@ -49,12 +49,16 @@
     .flight-route { display: flex; align-items: center; justify-content: space-between; margin: 10px 0; padding: 10px; background: #F8F9FA; border-radius: 14px; border: 1px dashed var(--border-color); }
     .city-name { font-size: 14px; font-weight: bold; color: #2D3436; }
 
-    .hotel-name { font-size: 16px; font-weight: bold; color: #2D3436; margin-bottom: 6px; }
+    .hotel-name-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+    .hotel-name { font-size: 16px; font-weight: bold; color: #2D3436; flex: 1; padding-right: 10px; }
+    .pixel-map-btn { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; background: #E8F4F8; border: 2px solid var(--border-color); border-radius: 10px; cursor: pointer; box-shadow: 2px 2px 0px var(--border-color); transition: transform 0.1s; flex-shrink: 0; }
+    .pixel-map-btn:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0px var(--border-color); }
+    .pixel-map-icon { width: 20px; height: 20px; }
+
     .hotel-detail { font-size: 13px; color: #636E72; margin-bottom: 4px; }
     .hotel-divider { border: none; border-top: 2px dashed var(--pink-soft); margin: 12px 0; }
     .tag-container { display: flex; gap: 6px; flex-wrap: wrap; }
     .hotel-tag { font-size: 11px; background: #E2F0CB; color: #386641; padding: 3px 8px; border-radius: 8px; font-weight: bold; border: 1px solid #B5E48C; }
-    .map-link { display: inline-block; margin-top: 8px; color: #0984E3; font-size: 12px; text-decoration: none; font-weight: bold; }
   </style>
 </head>
 <body>
@@ -106,18 +110,21 @@
     const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSYGijVIwS2p98zxzCSqG7fboUQGT57T25puI-LYendvF-vvgh4uhPALFyx5xvv5zhdRiQYQrVYq_sy/pub?output=csv';
 
     const airportDB = {
-      'HKG': { name: '香港 (HKG)', weather: '☀️ 18°C' },
+      'HKG': { name: '香港 (HKG)', weather: '☀️ 24°C' },
       'HKD': { name: '函館 (HKD)', weather: '❄️ -2°C / 3°C' },
-      'TPE': { name: '台北 (TPE)', weather: '⛅ 22°C' },
-      'FUK': { name: '福岡 (FUK)', weather: '🌧️ 10°C' },
-      'KIX': { name: '大阪 (KIX)', weather: '🌤️ 11°C' },
-      'ICN': { name: '首爾 (ICN)', weather: '❄️ -4°C' }
+      'TPE': { name: '台北 (TPE)', weather: '⛅ 24°C' },
+      'FUK': { name: '福岡 (FUK)', weather: '🌧️ 18°C' },
+      'KIX': { name: '大阪 (KIX)', weather: '🌤️ 19°C' },
+      'ICN': { name: '首爾 (ICN)', weather: '❄️ 12°C' },
+      'NRT': { name: '東京成田 (NRT)', weather: '⛅ 17°C' },
+      'HND': { name: '東京羽田 (HND)', weather: '⛅ 18°C' }
     };
 
     const pixelIcons = {
       boy: `<svg class="pixel-avatar" viewBox="0 0 10 10"><rect x="2" y="1" width="6" height="2" fill="#2A6F97"/><rect x="2" y="3" width="6" height="5" fill="#FFE0BD"/><rect x="3" y="4" width="1" height="1" fill="#2B2D42"/><rect x="6" y="4" width="1" height="1" fill="#2B2D42"/><rect x="4" y="6" width="2" height="1" fill="#FF8A80"/></svg>`,
       girl: `<svg class="pixel-avatar" viewBox="0 0 10 10"><rect x="0" y="3" width="2" height="3" fill="#FF8FAB"/><rect x="8" y="3" width="2" height="3" fill="#FF8FAB"/><rect x="2" y="1" width="6" height="2" fill="#FF8FAB"/><rect x="2" y="3" width="6" height="5" fill="#FFE0BD"/><rect x="3" y="4" width="1" height="1" fill="#2B2D42"/><rect x="6" y="4" width="1" height="1" fill="#2B2D42"/><rect x="4" y="6" width="2" height="1" fill="#FF8A80"/></svg>`,
-      both: `<svg class="pixel-avatar" viewBox="0 0 16 10"><g transform="translate(0,0)"><rect x="1" y="1" width="5" height="2" fill="#2A6F97"/><rect x="1" y="3" width="5" height="5" fill="#FFE0BD"/><rect x="2" y="4" width="1" height="1" fill="#2B2D42"/><rect x="4" y="4" width="1" height="1" fill="#2B2D42"/></g><g transform="translate(7,0)"><rect x="0" y="3" width="2" height="3" fill="#FF8FAB"/><rect x="6" y="3" width="2" height="3" fill="#FF8FAB"/><rect x="1" y="1" width="6" height="2" fill="#FF8FAB"/><rect x="1" y="3" width="6" height="5" fill="#FFE0BD"/><rect x="2" y="4" width="1" height="1" fill="#2B2D42"/><rect x="5" y="4" width="1" height="1" fill="#2B2D42"/></g></g></svg>`
+      both: `<svg class="pixel-avatar" viewBox="0 0 16 10"><g transform="translate(0,0)"><rect x="1" y="1" width="5" height="2" fill="#2A6F97"/><rect x="1" y="3" width="5" height="5" fill="#FFE0BD"/><rect x="2" y="4" width="1" height="1" fill="#2B2D42"/><rect x="4" y="4" width="1" height="1" fill="#2B2D42"/></g><g transform="translate(7,0)"><rect x="0" y="3" width="2" height="3" fill="#FF8FAB"/><rect x="6" y="3" width="2" height="3" fill="#FF8FAB"/><rect x="1" y="1" width="6" height="2" fill="#FF8FAB"/><rect x="1" y="3" width="6" height="5" fill="#FFE0BD"/><rect x="2" y="4" width="1" height="1" fill="#2B2D42"/><rect x="5" y="4" width="1" height="1" fill="#2B2D42"/></g></g></svg>`,
+      pixelMap: `<svg class="pixel-map-icon" viewBox="0 0 12 12"><rect x="1" y="2" width="4" height="8" fill="#E0C3FC"/><rect x="7" y="2" width="4" height="8" fill="#B5EAD7"/><rect x="5" y="2" width="2" height="8" fill="#9A8C98"/><rect x="5" y="3" width="2" height="2" fill="#FF6B6B"/><rect x="5" y="5" width="2" height="1" fill="#FFF"/></svg>`
     };
 
     let trips = [];
@@ -167,19 +174,42 @@
         if(passengerRaw.includes('男')) passenger = 'boy';
         else if(passengerRaw.includes('女')) passenger = 'girl';
 
-        const facilities = row[10] || '';
+        const rowString = row.join(' ');
+        const isCanceled = rowString.includes('已取消') || rowString.includes('canceled');
+
+        let fromCode = '', toCode = '', flightNo = '', depTime = '', arrTime = '', depTerminal = '', arrTerminal = '', name = '', addr = '', phone = '', facilities = '';
+
+        if (type === 'flight') {
+          fromCode = (row[4] || '').toUpperCase();
+          toCode = (row[5] || '').toUpperCase();
+          flightNo = row[6] || '';
+          depTime = row[7] || '';
+          arrTime = row[8] || '';
+          depTerminal = row[9] || '';  // 出發航廈
+          arrTerminal = row[10] || ''; // 抵達航廈
+        } else {
+          name = row[7] || '';
+          addr = row[8] || '';
+          phone = row[9] || '';
+          facilities = row[10] || '';
+        }
 
         result.push({
           id: i,
           type: type,
           date: row[2] || '',
           passenger: passenger,
-          fromCode: (row[4] || '').toUpperCase(),
-          toCode: (row[5] || '').toUpperCase(),
-          flightNo: row[6] || '',
-          name: row[7] || '',
-          address: row[8] || '',
-          phone: row[9] || '',
+          fromCode: fromCode,
+          toCode: toCode,
+          flightNo: flightNo,
+          depTime: depTime,
+          arrTime: arrTime,
+          depTerminal: depTerminal,
+          arrTerminal: arrTerminal,
+          isCanceled: isCanceled,
+          name: name,
+          address: addr,
+          phone: phone,
           breakfast: facilities.includes('早餐'),
           bathtub: facilities.includes('浴缸'),
           parking: facilities.includes('停車場')
@@ -193,7 +223,13 @@
       listEl.innerHTML = '';
       const todayStr = new Date().toISOString().split('T')[0];
 
-      const filteredTrips = trips.filter(item => currentTab === 'future' ? item.date >= todayStr : item.date < todayStr).sort((a, b) => new Date(a.date) - new Date(b.date));
+      const filteredTrips = trips.filter(item => {
+        return currentTab === 'future' ? item.date >= todayStr : item.date < todayStr;
+      }).sort((a, b) => {
+        return currentTab === 'future' 
+          ? new Date(a.date) - new Date(b.date)   
+          : new Date(b.date) - new Date(a.date);  
+      });
 
       if (filteredTrips.length === 0) {
         listEl.innerHTML = `<div style="text-align:center; padding: 40px; color: #9A8C98; font-weight:bold;">目前沒有相關行程（請透過 Google Form 新增）</div>`;
@@ -202,7 +238,7 @@
 
       filteredTrips.forEach(item => {
         const card = document.createElement('div');
-        card.className = `trip-card`;
+        card.className = `trip-card ${item.isCanceled ? 'canceled' : ''}`;
 
         let cardHtml = `<div class="avatar-badge">${pixelIcons[item.passenger] || pixelIcons.both}</div>`;
         
@@ -217,14 +253,24 @@
         `;
 
         if (item.type === 'flight') {
+          const timeText = (item.depTime || item.arrTime) ? `⏰ ${item.depTime || '--:--'} ➔ ${item.arrTime || '--:--'}` : '';
+          const cancelBadge = item.isCanceled ? `<span class="cancel-badge">已取消</span>` : '';
+          
+          const fromTermText = item.depTerminal ? ` <span style="font-size:11px; background:#FFE0BD; padding:2px 5px; border-radius:6px; color:#D35400;">${item.depTerminal}</span>` : '';
+          const toTermText = item.arrTerminal ? ` <span style="font-size:11px; background:#FFE0BD; padding:2px 5px; border-radius:6px; color:#D35400;">${item.arrTerminal}</span>` : '';
+
           cardHtml += `
-            <div class="flight-info-text" style="margin-bottom:8px;">
-              <strong>${item.flightNo || '航班'}</strong>
+            <div class="flight-info-text" style="margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <strong>${item.flightNo || '航班'}</strong>
+                ${cancelBadge}
+              </div>
+              <span style="font-size:12px; color:#636E72; font-weight:bold;">${timeText}</span>
             </div>
             <div class="flight-route">
-              <div class="city-name">${fromAirport.name}</div>
+              <div class="city-name">${fromAirport.name}${fromTermText}</div>
               <div style="font-size:12px; font-weight:bold; color:#6C5CE7;">✈</div>
-              <div class="city-name" style="text-align:right;">${toAirport.name}</div>
+              <div class="city-name" style="text-align:right;">${toAirport.name}${toTermText}</div>
             </div>
           `;
         } else if (item.type === 'hotel') {
@@ -236,10 +282,12 @@
           if (item.parking) tagsHtml += `<span class="hotel-tag">🅿️ 有停車場</span>`;
 
           cardHtml += `
-            <div class="hotel-name">${item.name}</div>
+            <div class="hotel-name-row">
+              <div class="hotel-name">${item.name}</div>
+              <a href="${mapUrl}" target="_blank" class="pixel-map-btn" title="在 Google 地圖開啟">${pixelIcons.pixelMap}</a>
+            </div>
             <div class="hotel-detail">📍 ${item.address}</div>
             <div class="hotel-detail">📞 ${item.phone}</div>
-            <a href="${mapUrl}" target="_blank" class="map-link">在 Google 地圖開啟</a>
             ${tagsHtml ? `<hr class="hotel-divider"><div class="tag-container">${tagsHtml}</div>` : ''}
           `;
         }
@@ -274,5 +322,3 @@
 
     loadTripsFromCloud();
   </script>
-</body>
-</html>
