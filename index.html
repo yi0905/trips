@@ -230,7 +230,7 @@
         const row = parseCSVLine(lines[i]);
         if (row.length < 3) continue;
 
-        // 嚴格鎖死你真實提供的欄位順序索引：
+        // 欄位鎖死對應：
         // [0] Timestamp, [1] 行程類型, [2] 日期, [3] 旅程成員, 
         // [4] 出發機場代碼, [5] 出發時間, [6] 出發航廈, 
         // [7] 抵達機場代碼, [8] 抵達時間, [9] 抵達航廈, 
@@ -274,19 +274,34 @@
           let nights = parseInt(row[16]) || 1;
           if (nights < 1) nights = 1;
 
-          for (let dayOffset = 0; dayOffset < nights; dayOffset++) {
-            const currentIsoDate = dayOffset === 0 ? isoDate : addDaysToDate(isoDate, dayOffset);
-            const currentRawDate = dayOffset === 0 ? rawDate : addDaysToRawDate(rawDate, dayOffset);
-            const nightLabel = nights > 1 ? ` (第${dayOffset + 1}晚)` : '';
-
+          if (nights === 1) {
             result.push({
-              id: `${i}-${dayOffset}`,
+              id: `${i}-0`,
               type: 'hotel',
-              date: currentIsoDate,
-              displayDate: currentRawDate,
+              date: isoDate,
+              displayDate: rawDate,
               passenger: passenger,
               isCanceled: isCanceled,
-              name: (row[12] || '') + nightLabel,
+              name: row[12] || '',
+              address: row[13] || '',
+              phone: row[14] || '',
+              breakfast: (row[15] || '').includes('早餐'),
+              bathtub: (row[15] || '').includes('浴缸'),
+              parking: (row[15] || '').includes('停車場')
+            });
+          } else {
+            const checkoutIsoDate = addDaysToDate(isoDate, nights);
+            const checkoutRawDate = addDaysToRawDate(rawDate, nights);
+            const dateRangeText = `${rawDate} ➔ ${checkoutRawDate} (${nights}晚)`;
+
+            result.push({
+              id: `${i}-range`,
+              type: 'hotel',
+              date: isoDate, // 依入住日期進行排序與未來/過去篩選
+              displayDate: dateRangeText,
+              passenger: passenger,
+              isCanceled: isCanceled,
+              name: row[12] || '',
               address: row[13] || '',
               phone: row[14] || '',
               breakfast: (row[15] || '').includes('早餐'),
