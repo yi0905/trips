@@ -54,7 +54,6 @@
     .date-tag { display: inline-block; background: var(--lavender-soft); padding: 4px 10px; border-radius: 10px; font-size: 12px; font-weight: bold; border: 1px solid var(--border-color); }
     .weather-tag { font-size: 12px; font-weight: bold; color: #0984E3; background: #E8F4F8; padding: 4px 8px; border-radius: 10px; border: 1px solid #B2BEC3; }
 
-    /* 航班 UI 排版 */
     .flight-header { font-size: 16px; font-weight: bold; color: #2D3436; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
     .flight-route { display: flex; align-items: center; justify-content: space-between; margin: 8px 0; padding: 12px; background: #F8F9FA; border-radius: 14px; border: 1px dashed var(--border-color); }
     .trip-card.canceled .flight-route { background: #FAEEF0; }
@@ -194,6 +193,15 @@
       return cleaned.substring(0, 10);
     }
 
+    function addDaysToDate(isoDateStr, days) {
+      const dateObj = new Date(isoDateStr);
+      dateObj.setDate(dateObj.getDate() + days);
+      const year = dateObj.getFullYear();
+      const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const day = String(dateObj.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
     function parseGoogleFormCSV(text) {
       const lines = text.split('\n').filter(l => l.trim() !== '');
       if (lines.length < 2) return [];
@@ -218,10 +226,11 @@
       const idxArrTime = findIndex(['抵達時間', '降落時間', 'arr']);
       const idxArrTerm = findIndex(['抵達航廈', 'arr term']);
       const idxFlightNo = findIndex(['航班編號', 'flight', '航班']);
-      const idxHotelName = findIndex(['飯店名稱', 'hotel', '酒店']);
+      const idxHotelName = findIndex(['飯店', 'hotel', '酒店']);
       const idxAddress = findIndex(['地址', 'address']);
       const idxPhone = findIndex(['電話', 'phone']);
       const idxFacilities = findIndex(['設施', 'facilities', '配備']);
+      const idxNights = findIndex(['天數', '晚數', 'nights', 'duration']);
 
       const result = [];
       for (let i = 1; i < lines.length; i++) {
@@ -236,7 +245,6 @@
         const rawDate = getVal(idxDate);
         const isoDate = parseDateToISO(rawDate);
 
-        // 強制嚴格對應 Both、Girl、Boy
         const memberRaw = getVal(idxMember).toLowerCase();
         let passenger = 'both';
         if (memberRaw === 'girl' || memberRaw.includes('girl')) {
@@ -250,27 +258,46 @@
         const rowString = row.join(' ').toLowerCase();
         const isCanceled = rowString.includes('已取消') || rowString.includes('canceled') || rowString.includes('取消');
 
-        result.push({
-          id: i,
-          type: type,
-          date: isoDate,
-          rawDate: rawDate,
-          passenger: passenger,
-          fromCode: getVal(idxFrom).toUpperCase(),
-          depTime: getVal(idxDepTime),
-          depTerminal: getVal(idxDepTerm),
-          toCode: getVal(idxTo).toUpperCase(),
-          arrTime: getVal(idxArrTime),
-          arrTerminal: getVal(idxArrTerm),
-          flightNo: getVal(idxFlightNo),
-          isCanceled: isCanceled,
-          name: getVal(idxHotelName),
-          address: getVal(idxAddress),
-          phone: getVal(idxPhone),
-          breakfast: getVal(idxFacilities).includes('早餐'),
-          bathtub: getVal(idxFacilities).includes('浴缸'),
-          parking: getVal(idxFacilities).includes('停車場')
-        });
+        if (type === 'flight') {
+          result.push({
+            id: i,
+            type: 'flight',
+            date: isoDate,
+            rawDate: rawDate,
+            passenger: passenger,
+            fromCode: getVal(idxFrom).toUpperCase(),
+            depTime: getVal(idxDepTime),
+            depTerminal: getVal(idxDepTerm),
+            toCode: getVal(idxTo).toUpperCase(),
+            arrTime: getVal(idxArrTime),
+            arrTerminal: getVal(idxArrTerm),
+            flightNo: getVal(idxFlightNo),
+            isCanceled: isCanceled
+          });
+        } else {
+          let nights = parseInt(getVal(idxNights)) || 1;
+          if (nights < 1) nights = 1;
+
+          for (let dayOffset = 0; dayOffset < nights; dayOffset++) {
+            const currentIsoDate = dayOffset === 0 ? isoDate : addDaysToDate(isoDate, dayOffset);
+            const nightLabel = nights > 1 ? ` (${rawDate} 起第${dayOffset + 1}晚)` : '';
+
+            result.push({
+              id: `${i}-${dayOffset}`,
+              type: 'hotel',
+              date: currentIsoDate,
+              rawDate: currentIsoDate, // 顯示當天日期
+              passenger: passenger,
+              isCanceled: isCanceled,
+              name: getVal(idxHotelName) + nightLabel,
+              address: getVal(idxAddress),
+              phone: getVal(idxPhone),
+              breakfast: getVal(idxFacilities).includes('早餐'),
+              bathtub: getVal(idxFacilities).includes('浴缸'),
+              parking: getVal(idxFacilities).includes('停車場')
+            });
+          }
+        }
       }
       return result;
     }
